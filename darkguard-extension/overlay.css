@@ -1,0 +1,168 @@
+.dg-overlay {
+  position: fixed;
+  border-radius: 4px;
+  pointer-events: auto;
+  z-index: 2147483646 !important;
+  cursor: pointer;
+  transition: box-shadow 0.2s, outline 0.2s;
+  outline: 2px solid rgba(255, 255, 255, 0.35);
+  outline-offset: 1px;
+}
+.dg-severity-high {
+  border: 2.5px solid #e94560;
+  box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.25);
+  background: rgba(233, 69, 96, 0.06);
+}
+.dg-severity-medium {
+  border: 2.5px solid #f5a623;
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.25);
+  background: rgba(245, 166, 35, 0.07);
+}
+.dg-severity-low {
+  border: 2.5px solid #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+  background: rgba(59, 130, 246, 0.06);
+}
+.dg-badge {
+  position: absolute;
+  top: -14px;
+  left: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+  font-family: system-ui, sans-serif;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+.dg-severity-high .dg-badge {
+  background: #e94560;
+  color: white;
+}
+.dg-severity-medium .dg-badge {
+  background: #f5a623;
+  color: #1a1a1a;
+}
+.dg-severity-low .dg-badge {
+  background: #3b82f6;
+  color: white;
+}
+.dg-tooltip {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 280px;
+  background: #1a1a2e;
+  color: white;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 12px;
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+  z-index: 2147483647 !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+.dg-overlay:hover .dg-tooltip {
+  display: block;
+}
+.dg-tooltip-pattern {
+  font-size: 10px;
+  font-family: ui-monospace, monospace;
+  color: rgba(255, 255, 255, 0.45);
+  margin-bottom: 6px;
+  word-break: break-all;
+}
+.dg-tooltip-title {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.dg-tooltip-desc {
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 8px;
+}
+.dg-tooltip-reg {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 6px;
+}
+.dg-tooltip-corr {
+  font-size: 10px;
+  color: #4ade80;
+  margin-top: 6px;
+}
+#dg-panel {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #1a1a2e;
+  color: white;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+  z-index: 2147483645 !important;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+  cursor: default;
+  min-width: 200px;
+}
+#dg-panel-grade {
+  font-size: 28px;
+  font-weight: 700;
+}
+#dg-panel-grade.grade-F,
+#dg-panel-grade.grade-E {
+  color: #e94560;
+}
+#dg-panel-grade.grade-D {
+  color: #f87171;
+}
+#dg-panel-grade.grade-C {
+  color: #f5a623;
+}
+#dg-panel-grade.grade-B {
+  color: #facc15;
+}
+#dg-panel-grade.grade-A,
+#dg-panel-grade.grade-Aplus {
+  color: #4ade80;
+}
+#dg-panel-label {
+  font-size: 10px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 4px;
+  max-width: 220px;
+}
+#dg-panel-meta {
+  flex: 1;
+}
+#dg-panel-score {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+}
+#dg-panel-count {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+}
+#dg-panel-details {
+  margin-top: 6px;
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: none;
+  background: #e94560;
+  color: white;
+  cursor: pointer;
+  font-family: system-ui, sans-serif;
+}
+#dg-panel-details:hover {
+  filter: brightness(1.08);
+}

@@ -1,0 +1,245 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  width: 340px;
+  margin: 0;
+  padding: 16px;
+  font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+  background: #1a1a2e;
+  color: #fff;
+}
+
+.dg-header {
+  text-align: center;
+  margin-bottom: 14px;
+}
+.dg-logo {
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: 26px;
+  letter-spacing: 0.04em;
+  color: #fff;
+}
+.dg-sub {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  margin-top: 2px;
+}
+
+.dg-score-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.dg-ring-wrap {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+.dg-ring {
+  width: 120px;
+  height: 120px;
+  transform: rotate(-90deg);
+}
+.dg-ring-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 8;
+}
+.dg-ring-fg {
+  fill: none;
+  stroke: #4ade80;
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-dasharray: 263.9;
+  stroke-dashoffset: 263.9;
+  transition: stroke-dashoffset 0.6s ease, stroke 0.3s ease;
+}
+.dg-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.dg-grade {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+}
+.dg-grade.grade-F,
+.dg-grade.grade-E {
+  color: #e94560;
+}
+.dg-grade.grade-D {
+  color: #f87171;
+}
+.dg-grade.grade-C {
+  color: #f5a623;
+}
+.dg-grade.grade-B {
+  color: #facc15;
+}
+.dg-grade.grade-A,
+.dg-grade.grade-Aplus {
+  color: #4ade80;
+}
+.dg-score-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  margin-top: 4px;
+}
+.dg-trust-label {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+.dg-trust-summary {
+  margin: 6px 12px 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.55);
+  text-align: center;
+}
+
+.dg-error {
+  background: rgba(233, 69, 96, 0.15);
+  border: 1px solid rgba(233, 69, 96, 0.4);
+  color: #fda4af;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  margin: 0 0 10px;
+}
+
+.dg-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.dg-btn {
+  flex: 1;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.dg-btn-primary {
+  background: #e94560;
+  color: #fff;
+}
+.dg-btn-primary:hover {
+  filter: brightness(1.06);
+}
+.dg-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.dg-btn-ghost {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+.dg-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.dg-btn-save {
+  flex: 0 0 auto;
+  background: rgba(74, 222, 128, 0.2);
+  color: #4ade80;
+  padding: 8px 14px;
+}
+
+.dg-findings-title,
+.dg-settings-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.35);
+  margin: 0 0 8px;
+}
+.dg-findings-list {
+  max-height: 220px;
+  overflow-y: auto;
+  margin-bottom: 8px;
+}
+.dg-finding {
+  border-radius: 10px;
+  padding: 10px 10px;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-left: 3px solid #3b82f6;
+}
+.dg-finding.high {
+  border-left-color: #e94560;
+}
+.dg-finding.medium {
+  border-left-color: #f5a623;
+}
+.dg-finding.low {
+  border-left-color: #3b82f6;
+}
+.dg-finding-name {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.dg-finding-desc {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.45;
+}
+.dg-finding-meta {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.35);
+  margin-top: 6px;
+}
+.dg-finding-corr {
+  color: #4ade80;
+  margin-top: 4px;
+  font-size: 10px;
+}
+.dg-empty {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 0;
+}
+
+.dg-settings {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.dg-settings-hint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  margin: 0 0 8px;
+}
+.dg-key-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.dg-input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: #fff;
+  font-size: 12px;
+}
+.dg-input::placeholder {
+  color: rgba(255, 255, 255, 0.25);
+}
+.dg-save-msg {
+  font-size: 11px;
+  color: #4ade80;
+  margin: 6px 0 0;
+}

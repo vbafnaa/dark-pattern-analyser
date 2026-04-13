@@ -1,0 +1,39 @@
+# ── Python ────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+
+# ── Django ────────────────────────────────────────
+db.sqlite3
+staticfiles/
+media/
+
+# ── Node / Extension ─────────────────────────────
+node_modules/
+extension/dist/
+*.tsbuildinfo
+
+# ── Environment / Secrets ─────────────────────────
+.env
+.env.local
+.env.production
+
+# ── IDE / Editor ──────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── Agent / Gemini metadata ───────────────────────
+.agent/
+.gemini/

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DarkGuard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="dg-header">
+      <div class="dg-logo">Trusten</div>
+      <div class="dg-sub">DarkGuard</div>
+    </header>
+
+    <section class="dg-score-block" id="dg-score-block">
+      <div class="dg-ring-wrap">
+        <svg class="dg-ring" viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="dg-ring-bg" cx="50" cy="50" r="42" />
+          <circle class="dg-ring-fg" id="dg-ring-fg" cx="50" cy="50" r="42" />
+        </svg>
+        <div class="dg-ring-center">
+          <span class="dg-grade" id="dg-grade">—</span>
+          <span class="dg-score-label" id="dg-score-num">—</span>
+        </div>
+      </div>
+      <p class="dg-trust-label">Trust score</p>
+      <p class="dg-trust-summary" id="dg-trust-summary" hidden></p>
+    </section>
+
+    <p class="dg-error" id="dg-error" hidden></p>
+
+    <section class="dg-actions">
+      <button type="button" class="dg-btn dg-btn-primary" id="dg-scan">Scan Page</button>
+      <button type="button" class="dg-btn dg-btn-ghost" id="dg-clear">Clear</button>
+    </section>
+
+    <section class="dg-findings" id="dg-findings">
+      <h2 class="dg-findings-title">Findings</h2>
+      <div id="dg-findings-list" class="dg-findings-list"></div>
+      <p class="dg-empty" id="dg-empty">Open a page and tap Scan to analyze.</p>
+    </section>
+
+    <section class="dg-settings">
+      <h2 class="dg-settings-title">API Key</h2>
+      <p class="dg-settings-hint">Google AI (Gemini) key enables the AI analyzer (optional).</p>
+      <div class="dg-key-row">
+        <input
+          type="password"
+          id="dg-api-key"
+          class="dg-input"
+          placeholder="Google AI API key"
+          autocomplete="off"
+        />
+        <button type="button" class="dg-btn dg-btn-save" id="dg-save-key">Save</button>
+      </div>
+      <p class="dg-save-msg" id="dg-save-msg" hidden>Saved.</p>
+    </section>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
