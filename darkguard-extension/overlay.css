@@ -169,3 +169,20 @@
 #dg-panel-details:hover {
   filter: brightness(1.08);
 }
+
+/* ── Click-to-scroll pulse animation ── */
+@keyframes dg-pulse {
+  0%   { outline-color: rgba(255, 255, 255, 0.9); outline-width: 3px; outline-offset: 2px; }
+  50%  { outline-color: rgba(255, 200, 50, 1);     outline-width: 5px; outline-offset: 4px; }
+  100% { outline-color: rgba(255, 255, 255, 0.35); outline-width: 2px; outline-offset: 1px; }
+}
+.dg-overlay-pulse {
+  animation: dg-pulse 0.8s ease 2;
+}
+
+/* ── Single-finding isolation: dim non-focused overlays ── */
+.dg-overlay-dimmed {
+  opacity: 0.12 !important;
+  pointer-events: none !important;
+  transition: opacity 0.25s ease;
+}

@@ -66,8 +66,11 @@ function mergeFindings(domFindings, textFindings, aiFindings) {
       if (r1 > r0) best = g;
     }
     const { _src, ...rest } = best;
+    let conf = rest.confidence ?? 0.5;
+    if (corroborated) conf = Math.min(1, conf + 0.1);
     merged.push({
       ...rest,
+      confidence: conf,
       corroborated,
       analyzer: rest.analyzer || best._src,
     });
@@ -290,7 +293,7 @@ function runDOMAnalyzer(signals) {
   if (nums.length >= 2) {
     const hi = Math.max(...nums);
     const lo = Math.min(...nums);
-    if (hi > lo * 1.08 || hi - lo >= 8) {
+    if (lo > 0 && hi > lo * 1.25 && hi - lo >= 15) {
       const rect =
         (signals.totalSummaryElements && signals.totalSummaryElements[0]?.rect) ||
         (signals.priceElements && signals.priceElements[0]?.rect) ||
@@ -313,7 +316,7 @@ function runDOMAnalyzer(signals) {
   const sensitiveHidden = (signals.hiddenElements || []).some((h) =>
     /subscribe|opt|consent|agree/i.test(h.name || '')
   );
-  if (hid > 5 || sensitiveHidden) {
+  if (hid > 12 || sensitiveHidden) {
     push({
       patternType: 'hidden_inputs',
       name: 'Suspicious Hidden Fields',
@@ -329,7 +332,7 @@ function runDOMAnalyzer(signals) {
 
   const mp = signals.maxPrimaryButtonArea || 0;
   const md = signals.maxDeclineButtonArea || 0;
-  if (mp > 0 && md > 0 && mp > md * 2.5) {
+  if (mp > 0 && md > 0 && mp > md * 3) {
     const pr =
       (signals.primaryCandidates || []).sort((a, b) => b.area - a.area)[0] || null;
     push({
@@ -385,7 +388,10 @@ function runDOMAnalyzer(signals) {
   const hasRejectAll = btnLinkTexts.some((t) =>
     /reject all|decline all|deny all/i.test(t)
   );
-  if ((signals.cookieBanners || []).length > 0 && !hasRejectAll) {
+  const hasAcceptBtn = btnLinkTexts.some((t) =>
+    /accept all|allow all|accept cookies|i agree|got it/i.test(t)
+  );
+  if ((signals.cookieBanners || []).length > 0 && hasAcceptBtn && !hasRejectAll) {
     push({
       patternType: 'missing_reject_all',
       name: 'Missing Reject All Cookie Option',
@@ -412,25 +418,25 @@ function runDOMAnalyzer(signals) {
   }
 
   if ((signals.autoplayMedia || []).length > 0) {
-    const r = signals.autoplayMedia[0].rect;
+    const autoRect = signals.autoplayMedia[0].rect;
     push({
       patternType: 'auto_playing_media',
       name: 'Autoplay Media',
       severity: 'low',
       description: 'Autoplaying audio/video can hijack attention without explicit consent.',
       regulation: 'EU DSA Art.25',
-      rect,
+      rect: autoRect,
       analyzer: 'DOM',
-      confidence: 0.55,
+      confidence: 0.56,
     });
   }
 
-  if (!signals.hasPagination && signals.scrollHeavy) {
+  if (!signals.hasPagination && !signals.hasFooter && signals.scrollHeavy) {
     push({
       patternType: 'infinite_scroll',
       name: 'Infinite Scroll Without Pagination',
       severity: 'low',
-      description: 'Very long scroll-heavy layout with no clear pagination controls.',
+      description: 'Very long scroll-heavy layout with no clear pagination controls and no visible footer.',
       regulation: 'EU DSA Art.25',
       rect: defaultRect(signals),
       analyzer: 'DOM',
@@ -609,7 +615,7 @@ function runTextAnalyzer(signals) {
       re: /(#\d+\s)?(best\s?seller|trending|most popular|top rated)\s*(this week|today|right now)/i,
       description: 'Trending/bestseller labels without transparent methodology.',
       regulation: 'FTC Act §5',
-      confidence: 0.5,
+      confidence: 0.50,
     },
     {
       patternType: 'misleading_free',
@@ -643,10 +649,16 @@ function runTextAnalyzer(signals) {
       name: 'Misleading Discount Framing',
       severity: 'medium',
       re: /\d{1,3}%\s*(off|discount)/i,
-      extra: () => !/\b(was|originally|list price|from)\b/i.test(lower.slice(0, 2500)),
+      extra: () => {
+        // Don't fire if strikethrough/reference prices exist (discount is substantiated)
+        if ((signals.strikethroughPrices || []).length > 0) return false;
+        // Don't fire if reference price words exist near the top of the page
+        if (/\b(was|originally|list price|regular price|compare at|retail price)\b/i.test(lower.slice(0, 3500))) return false;
+        return true;
+      },
       description: 'Percent-off claims with weak or missing reference pricing nearby.',
       regulation: 'FTC Guides Against Deceptive Pricing',
-      confidence: 0.48,
+      confidence: 0.55,
     },
     {
       patternType: 'fake_urgency_low_price',
@@ -849,21 +861,25 @@ function runTextAnalyzer(signals) {
 
   if (
     (signals.modals || []).length > 0 &&
-    /\bsubscribe\b|\bsign up\b/i.test(blob) &&
     !seen.has('forced_registration')
   ) {
-    seen.add('forced_registration');
-    add(
-      {
-        patternType: 'forced_registration',
-        name: 'Forced Registration Prompt',
-        severity: 'low',
-        description: 'Subscribe/sign-up prompts appear inside blocking overlays.',
-        regulation: 'GDPR Art.7',
-        confidence: 0.52,
-      },
-      'subscribe'
-    );
+    // Check if modal text itself contains subscribe/sign-up language
+    const modalBlob = (signals.modals || []).map((m) => m.text).join('\n').toLowerCase();
+    const modalHasSignup = /\bsubscribe\b|\bsign up\b|\bsign.in\b|\bcreate.*(account|profile)\b|\bregist/i.test(modalBlob);
+    if (modalHasSignup) {
+      seen.add('forced_registration');
+      add(
+        {
+          patternType: 'forced_registration',
+          name: 'Forced Registration Prompt',
+          severity: 'low',
+          description: 'Subscribe/sign-up prompts appear inside blocking overlays.',
+          regulation: 'GDPR Art.7',
+          confidence: 0.55,
+        },
+        'subscribe'
+      );
+    }
   }
 
   const recurring = (signals.priceElements || []).some((p) => /\/mo\b|\/month|per month/i.test(p.text || ''));

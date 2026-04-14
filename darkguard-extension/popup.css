@@ -155,13 +155,37 @@ body {
   padding: 8px 14px;
 }
 
+.dg-findings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
 .dg-findings-title,
 .dg-settings-title {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: rgba(255, 255, 255, 0.35);
-  margin: 0 0 8px;
+  margin: 0;
+}
+.dg-severity-select {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 10px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-family: inherit;
+  outline: none;
+}
+.dg-severity-select:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.dg-severity-select option {
+  background: #1a1a2e;
+  color: #fff;
 }
 .dg-findings-list {
   max-height: 220px;
@@ -203,6 +227,14 @@ body {
   color: #4ade80;
   margin-top: 4px;
   font-size: 10px;
+}
+.dg-finding:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+.dg-finding-active {
+  outline: 2px solid rgba(255, 200, 50, 0.7);
+  outline-offset: -1px;
+  background: rgba(255, 200, 50, 0.08) !important;
 }
 .dg-empty {
   font-size: 12px;

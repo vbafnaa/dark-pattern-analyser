@@ -521,8 +521,14 @@
 
     const scrollHeavy =
       document.body &&
-      document.body.scrollHeight > window.innerHeight * 3 &&
-      document.querySelectorAll('img,article,[class*="card"]').length > 24;
+      document.body.scrollHeight > window.innerHeight * 5 &&
+      document.querySelectorAll('img,article,[class*="card"]').length > 40;
+
+    const hasFooter = !!(document.querySelector('footer') ||
+      document.querySelector('[class*="footer" i]') ||
+      document.querySelector('[id*="footer" i]') ||
+      document.querySelector('[role="contentinfo"]') ||
+      document.querySelector('a[href="#top"], a[href*="back-to-top"]'));
 
     const viewport = {
       width: window.innerWidth || 800,
@@ -582,6 +588,7 @@
       hasEmailAndPasswordInputs: hasEmail && hasPassword,
       priceVisibleOnPage: !!priceLikeVisible,
       hasPagination,
+      hasFooter,
       scrollHeavy,
       autoplayMedia,
       declineCandidates,
@@ -953,6 +960,55 @@
         sendResponse({ error: String(e && e.message) });
       }
       return true;
+    }
+    if (msg.type === 'SCROLL_TO_FINDING') {
+      const idx = msg.index;
+      const entry = __dg_overlayEls[idx];
+      if (entry && entry.el) {
+        entry.el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Pulse animation
+        entry.el.classList.remove('dg-overlay-pulse');
+        void entry.el.offsetWidth; // force reflow to restart animation
+        entry.el.classList.add('dg-overlay-pulse');
+        setTimeout(() => entry.el.classList.remove('dg-overlay-pulse'), 1800);
+      }
+      sendResponse({ ok: true });
+    }
+    if (msg.type === 'FOCUS_FINDING') {
+      const idx = msg.index; // -1 means clear focus (show all)
+      for (let i = 0; i < __dg_overlayEls.length; i++) {
+        const entry = __dg_overlayEls[i];
+        if (!entry || !entry.el) continue;
+        if (idx === -1) {
+          // Clear all dimming — show everything
+          entry.el.classList.remove('dg-overlay-dimmed');
+        } else if (i === idx) {
+          // This is the focused one — make it bright + pulse
+          entry.el.classList.remove('dg-overlay-dimmed');
+          entry.el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          entry.el.classList.remove('dg-overlay-pulse');
+          void entry.el.offsetWidth;
+          entry.el.classList.add('dg-overlay-pulse');
+          setTimeout(() => entry.el.classList.remove('dg-overlay-pulse'), 1800);
+        } else {
+          // Dim everything else
+          entry.el.classList.add('dg-overlay-dimmed');
+        }
+      }
+      sendResponse({ ok: true });
+    }
+    if (msg.type === 'FILTER_SEVERITY') {
+      const allowed = msg.allowedSeverities || ['high', 'medium', 'low'];
+      for (const entry of __dg_overlayEls) {
+        if (!entry || !entry.el || !entry.finding) continue;
+        const sev = entry.finding.severity || 'low';
+        if (allowed.includes(sev)) {
+          entry.el.style.display = '';
+        } else {
+          entry.el.style.display = 'none';
+        }
+      }
+      sendResponse({ ok: true });
     }
   });
 })();

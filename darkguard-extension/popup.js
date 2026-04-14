@@ -25,11 +25,16 @@ function showError(msg) {
   el.textContent = msg;
 }
 
+let __dgActiveFindingIdx = -1; // -1 = show all, N = isolated finding
+let __dgAllFindings = []; // full findings array for severity filtering
+
 function renderFindings(findings) {
   const list = document.getElementById('dg-findings-list');
   const empty = document.getElementById('dg-empty');
   if (!list || !empty) return;
   list.innerHTML = '';
+  __dgActiveFindingIdx = -1;
+  __dgAllFindings = findings || [];
   if (!findings || findings.length === 0) {
     empty.hidden = false;
     return;
@@ -39,10 +44,20 @@ function renderFindings(findings) {
   const sorted = [...findings].sort(
     (a, b) => (order[a.severity] ?? 9) - (order[b.severity] ?? 9)
   );
-  for (const f of sorted) {
+
+  // Build a map from sorted index to original finding index
+  const originalIndices = sorted.map((sf) => findings.indexOf(sf));
+
+  for (let si = 0; si < sorted.length; si++) {
+    const f = sorted[si];
+    const origIdx = originalIndices[si];
     const sev = f.severity || 'low';
     const div = document.createElement('div');
     div.className = `dg-finding ${sev}`;
+    div.setAttribute('data-finding-index', String(origIdx));
+    div.style.cursor = 'pointer';
+    div.title = 'Click to scroll to this finding. Click again to show all.';
+
     const name = document.createElement('div');
     name.className = 'dg-finding-name';
     name.textContent = f.name || f.patternType || 'Finding';
@@ -63,6 +78,32 @@ function renderFindings(findings) {
       c.textContent = 'Corroborated by multiple analyzers';
       div.appendChild(c);
     }
+
+    // Click handler: toggle isolation
+    div.addEventListener('click', async () => {
+      const idx = origIdx;
+      try {
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        const tabId = tabs[0]?.id;
+        if (tabId == null) return;
+
+        if (__dgActiveFindingIdx === idx) {
+          // Already focused on this one → clear focus (show all)
+          __dgActiveFindingIdx = -1;
+          await chrome.tabs.sendMessage(tabId, { type: 'FOCUS_FINDING', index: -1 });
+          // Remove active styling from all cards
+          list.querySelectorAll('.dg-finding').forEach((el) => el.classList.remove('dg-finding-active'));
+        } else {
+          // Focus on this finding → dim others
+          __dgActiveFindingIdx = idx;
+          await chrome.tabs.sendMessage(tabId, { type: 'FOCUS_FINDING', index: idx });
+          // Highlight this card, unhighlight others
+          list.querySelectorAll('.dg-finding').forEach((el) => el.classList.remove('dg-finding-active'));
+          div.classList.add('dg-finding-active');
+        }
+      } catch (_) {}
+    });
+
     list.appendChild(div);
   }
 }
@@ -190,4 +231,41 @@ document.addEventListener('DOMContentLoaded', () => {
       showError(e.message || 'Clear failed.');
     }
   });
+  // Severity filter dropdown
+  const filterEl = document.getElementById('dg-severity-filter');
+  if (filterEl) {
+    filterEl.addEventListener('change', () => {
+      applySeverityFilter(filterEl.value);
+    });
+  }
 });
+
+async function applySeverityFilter(filterValue) {
+  const list = document.getElementById('dg-findings-list');
+  if (!list) return;
+  const allowedSeverities = filterValue === 'all'
+    ? ['high', 'medium', 'low']
+    : filterValue.split(',');
+
+  // Filter cards in the popup
+  const cards = list.querySelectorAll('.dg-finding');
+  cards.forEach((card) => {
+    const isHigh = card.classList.contains('high');
+    const isMedium = card.classList.contains('medium');
+    const isLow = card.classList.contains('low');
+    const sev = isHigh ? 'high' : isMedium ? 'medium' : 'low';
+    card.style.display = allowedSeverities.includes(sev) ? '' : 'none';
+  });
+
+  // Send to content script to show/hide overlays
+  try {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tabId = tabs[0]?.id;
+    if (tabId != null) {
+      await chrome.tabs.sendMessage(tabId, {
+        type: 'FILTER_SEVERITY',
+        allowedSeverities,
+      });
+    }
+  } catch (_) {}
+}

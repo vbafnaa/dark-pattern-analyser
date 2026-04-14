@@ -41,7 +41,15 @@
     </section>
 
     <section class="dg-findings" id="dg-findings">
-      <h2 class="dg-findings-title">Findings</h2>
+      <div class="dg-findings-header">
+        <h2 class="dg-findings-title">Findings</h2>
+        <select id="dg-severity-filter" class="dg-severity-select">
+          <option value="all">All Priorities</option>
+          <option value="high">High Only</option>
+          <option value="high,medium">High + Medium</option>
+          <option value="low">Low Only</option>
+        </select>
+      </div>
       <div id="dg-findings-list" class="dg-findings-list"></div>
       <p class="dg-empty" id="dg-empty">Open a page and tap Scan to analyze.</p>
     </section>
