@@ -1,5 +1,5 @@
 .dg-overlay {
-  position: fixed;
+  position: absolute;
   border-radius: 4px;
   pointer-events: auto;
   z-index: 2147483646 !important;
@@ -7,6 +7,9 @@
   transition: box-shadow 0.2s, outline 0.2s;
   outline: 2px solid rgba(255, 255, 255, 0.35);
   outline-offset: 1px;
+}
+.dg-overlay-fixed {
+  position: fixed !important;
 }
 .dg-severity-high {
   border: 2.5px solid #e94560;

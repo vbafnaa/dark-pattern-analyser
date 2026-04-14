@@ -31,14 +31,14 @@
   async function triggerScan(): Promise<void> {
     loading = true;
     error = "";
+    detections = [];
     try {
+      // Clear previous error from storage
+      await chrome.storage.local.remove("lastError");
+      // Send the analysis trigger — results will arrive via storage.onChanged
       await chrome.runtime.sendMessage({ type: "TRIGGER_ANALYSIS" });
-      // Wait a moment for storage to update, then reload
-      await new Promise((r) => setTimeout(r, 500));
-      await loadResults();
     } catch (err) {
       error = err instanceof Error ? err.message : String(err);
-    } finally {
       loading = false;
     }
   }
@@ -59,6 +59,26 @@
   function formatCategory(cat: string): string {
     return cat.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   }
+
+  // Listen for storage changes — react as soon as results arrive
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local") return;
+
+    if (changes["lastDetections"]) {
+      detections = changes["lastDetections"].newValue ?? [];
+      loading = false;
+    }
+    if (changes["lastUrl"]) {
+      pageUrl = changes["lastUrl"].newValue ?? "";
+    }
+    if (changes["lastTimestamp"]) {
+      timestamp = changes["lastTimestamp"].newValue ?? "";
+    }
+    if (changes["lastError"]) {
+      error = changes["lastError"].newValue ?? "";
+      loading = false;
+    }
+  });
 
   // Load results on mount
   loadResults();

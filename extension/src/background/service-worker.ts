@@ -82,6 +82,16 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
             const tab = tabs[0];
             if (tab?.id) {
+                // Inject content scripts if not already present
+                try {
+                    await chrome.scripting.executeScript({
+                        target: { tabId: tab.id },
+                        files: ["content.js"],
+                    });
+                } catch {
+                    // Script might already be injected — that's fine
+                }
+
                 await runAnalysis(tab.id);
                 sendResponse({ success: true });
             } else {

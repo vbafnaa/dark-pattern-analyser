@@ -16,8 +16,8 @@
     try {
       const r = el.getBoundingClientRect();
       return {
-        top: r.top,
-        left: r.left,
+        top: r.top + (window.scrollY || 0),
+        left: r.left + (window.scrollX || 0),
         width: r.width,
         height: r.height,
       };
@@ -595,6 +595,55 @@
     };
   }
 
+  /** Check whether an element (or any ancestor) has fixed or sticky positioning. */
+  function isFixedOrSticky(el) {
+    let cur = el;
+    while (cur && cur !== document.documentElement) {
+      try {
+        const pos = window.getComputedStyle(cur).position;
+        if (pos === 'fixed' || pos === 'sticky') return true;
+      } catch (_) {}
+      cur = cur.parentElement;
+    }
+    return false;
+  }
+
+  /** Try to find the actual DOM element that a finding's rect corresponds to. */
+  function findTargetElement(finding) {
+    const hint = [finding.targetText, finding.name, finding.patternType]
+      .filter(Boolean)
+      .join(' ')
+      .trim()
+      .toLowerCase()
+      .slice(0, 120);
+    if (!hint) return null;
+
+    // Search clickable/interactive elements for a text match
+    const candidates = [
+      ...document.querySelectorAll('button, [role="button"], a[href], input[type="submit"], select'),
+      ...document.querySelectorAll('[class*="cookie" i], [class*="consent" i], [id*="cookie" i], [id*="consent" i]'),
+      ...document.querySelectorAll('[class*="countdown" i], [class*="timer" i]'),
+      ...document.querySelectorAll('[class*="price" i], [class*="fee" i], [class*="total" i]'),
+    ];
+    const words = hint.split(/[\s_]+/).filter((w) => w.length > 3);
+
+    for (const el of candidates) {
+      const elText = (el.textContent || '').trim().toLowerCase();
+      if (!elText) continue;
+      // Exact substring match
+      if (elText.includes(hint.slice(0, 50))) return el;
+      // Word overlap
+      const hits = words.filter((w) => elText.includes(w));
+      if (hits.length >= 2) return el;
+    }
+    return null;
+  }
+
+  // State for overlay tracking
+  let __dg_overlayEls = [];  // { el, finding, isFixed }
+  let __dg_rafScheduled = false;
+  let __dg_mutationObs = null;
+
   function injectOverlayCss() {
     if (window.__DG_OVERLAY_CSS_INJECTED__) return;
     window.__DG_OVERLAY_CSS_INJECTED__ = true;
@@ -605,16 +654,27 @@
     document.documentElement.appendChild(link);
   }
 
+  function stopTrackingListeners() {
+    window.removeEventListener('scroll', scheduleReposition, true);
+    window.removeEventListener('resize', scheduleReposition);
+    if (__dg_mutationObs) {
+      __dg_mutationObs.disconnect();
+      __dg_mutationObs = null;
+    }
+  }
+
   function clearOverlays() {
+    stopTrackingListeners();
     document.querySelectorAll('.dg-overlay').forEach((el) => el.remove());
     const panel = document.getElementById('dg-panel');
     if (panel) panel.remove();
+    __dg_overlayEls = [];
     try {
       chrome.runtime.sendMessage({ type: 'SET_BADGE', count: 0 });
     } catch (_) {}
   }
 
-  function clampOverlayRect(rect, vw, vh) {
+  function clampOverlayRect(rect, maxW, maxH) {
     let top = Number(rect.top);
     let left = Number(rect.left);
     let w = Math.max(56, Number(rect.width) || 56);
@@ -623,11 +683,98 @@
       top = 72;
       left = 12;
     }
-    top = Math.max(6, Math.min(top, vh - 12));
-    left = Math.max(6, Math.min(left, vw - 12));
-    if (top + h > vh - 6) top = Math.max(6, vh - h - 6);
-    if (left + w > vw - 6) left = Math.max(6, vw - w - 6);
+    top = Math.max(6, Math.min(top, maxH - 12));
+    left = Math.max(6, Math.min(left, maxW - 12));
+    if (top + h > maxH - 6) top = Math.max(6, maxH - h - 6);
+    if (left + w > maxW - 6) left = Math.max(6, maxW - w - 6);
     return { top, left, width: w, height: h };
+  }
+
+  /** Reposition all tracked overlays to match their current target rects. */
+  function repositionOverlays() {
+    const vw = window.innerWidth || 800;
+    const vh = window.innerHeight || 600;
+    const docW = Math.max(document.documentElement.scrollWidth, vw);
+    const docH = Math.max(document.documentElement.scrollHeight, vh);
+
+    for (const entry of __dg_overlayEls) {
+      const { el, finding } = entry;
+      // Try to find the live DOM element for this finding
+      const target = findTargetElement(finding);
+
+      if (target) {
+        // We found the actual element — get its CURRENT absolute rect
+        const liveRect = target.getBoundingClientRect();
+        if (liveRect.width >= 4 && liveRect.height >= 4) {
+          const absRect = {
+            top: liveRect.top + (window.scrollY || 0),
+            left: liveRect.left + (window.scrollX || 0),
+            width: liveRect.width,
+            height: liveRect.height,
+          };
+
+          // Re-check if this target is fixed/sticky
+          const nowFixed = isFixedOrSticky(target);
+          if (nowFixed !== entry.isFixed) {
+            entry.isFixed = nowFixed;
+            if (nowFixed) {
+              el.classList.add('dg-overlay-fixed');
+            } else {
+              el.classList.remove('dg-overlay-fixed');
+            }
+          }
+
+          if (entry.isFixed) {
+            // Fixed elements: use viewport-relative rect
+            const clamped = clampOverlayRect(
+              { top: liveRect.top, left: liveRect.left, width: liveRect.width, height: liveRect.height },
+              vw, vh
+            );
+            el.style.top = `${clamped.top}px`;
+            el.style.left = `${clamped.left}px`;
+            el.style.width = `${clamped.width}px`;
+            el.style.height = `${clamped.height}px`;
+          } else {
+            // Normal elements: use document-absolute rect
+            const clamped = clampOverlayRect(absRect, docW, docH);
+            el.style.top = `${clamped.top}px`;
+            el.style.left = `${clamped.left}px`;
+            el.style.width = `${clamped.width}px`;
+            el.style.height = `${clamped.height}px`;
+          }
+        }
+      }
+      // If target not found, keep overlay at its current stored absolute position
+      // (don't recompute — that would drift on every scroll)
+    }
+  }
+
+  /** Throttled reposition — called on scroll/resize. */
+  function scheduleReposition() {
+    if (__dg_rafScheduled) return;
+    __dg_rafScheduled = true;
+    requestAnimationFrame(() => {
+      repositionOverlays();
+      __dg_rafScheduled = false;
+    });
+  }
+
+  /** Start listening for scroll/resize/DOM changes. */
+  function startTrackingListeners() {
+    window.addEventListener('scroll', scheduleReposition, { passive: true, capture: true });
+    window.addEventListener('resize', scheduleReposition, { passive: true });
+
+    // Observe DOM for new elements (cookie popups, modals injected dynamically)
+    if (__dg_mutationObs) __dg_mutationObs.disconnect();
+    __dg_mutationObs = new MutationObserver(() => {
+      scheduleReposition();
+    });
+    __dg_mutationObs.observe(document.body || document.documentElement, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['style', 'class'],
+    });
   }
 
   function renderOverlays(payload) {
@@ -641,27 +788,62 @@
 
     const vw = window.innerWidth || 800;
     const vh = window.innerHeight || 600;
+    const docW = Math.max(document.documentElement.scrollWidth, vw);
+    const docH = Math.max(document.documentElement.scrollHeight, vh);
     const rootEl = document.documentElement || document.body;
 
     findings.forEach((finding, idx) => {
+      // finding.rect is already document-absolute (serializeRect adds scrollY/X)
       let rect = finding.rect || { top: 8, left: 8, width: 120, height: 40 };
       if (!rect.width || !rect.height || rect.width < 4 || rect.height < 4) {
         const row = Math.floor(idx / 2);
         rect = {
-          top: 70 + row * 52,
+          top: 70 + row * 52 + (window.scrollY || 0),
           left: 12 + (idx % 2) * Math.min(160, vw / 2 - 20),
           width: Math.min(320, vw - 32),
           height: 44,
         };
       }
-      rect = clampOverlayRect(rect, vw, vh);
+
+      // Determine if this finding targets a fixed/sticky element
+      const target = findTargetElement(finding);
+      const fixed = target ? isFixedOrSticky(target) : false;
+
+      // Use live target rect if we found the element (convert to absolute)
+      if (target) {
+        const liveRect = target.getBoundingClientRect();
+        if (liveRect.width >= 4 && liveRect.height >= 4) {
+          rect = {
+            top: liveRect.top + (window.scrollY || 0),
+            left: liveRect.left + (window.scrollX || 0),
+            width: liveRect.width,
+            height: liveRect.height,
+          };
+        }
+      }
+
+      let finalRect;
+      if (fixed) {
+        // Fixed/sticky elements: convert back to viewport-relative for fixed positioning
+        const viewportRect = {
+          top: rect.top - (window.scrollY || 0),
+          left: rect.left - (window.scrollX || 0),
+          width: rect.width,
+          height: rect.height,
+        };
+        finalRect = clampOverlayRect(viewportRect, vw, vh);
+      } else {
+        // Normal elements: rects are already document-absolute
+        finalRect = clampOverlayRect(rect, docW, docH);
+      }
+
       const sev = finding.severity || 'low';
       const wrap = document.createElement('div');
-      wrap.className = `dg-overlay dg-severity-${sev}`;
-      wrap.style.top = `${rect.top}px`;
-      wrap.style.left = `${rect.left}px`;
-      wrap.style.width = `${rect.width}px`;
-      wrap.style.height = `${rect.height}px`;
+      wrap.className = `dg-overlay dg-severity-${sev}${fixed ? ' dg-overlay-fixed' : ''}`;
+      wrap.style.top = `${finalRect.top}px`;
+      wrap.style.left = `${finalRect.left}px`;
+      wrap.style.width = `${finalRect.width}px`;
+      wrap.style.height = `${finalRect.height}px`;
       wrap.style.boxSizing = 'border-box';
       wrap.style.setProperty('z-index', '2147483646', 'important');
       wrap.style.setProperty('isolation', 'isolate', 'important');
@@ -701,6 +883,9 @@
       wrap.appendChild(badge);
       wrap.appendChild(tip);
       rootEl.appendChild(wrap);
+
+      // Track this overlay for repositioning
+      __dg_overlayEls.push({ el: wrap, finding, isFixed: fixed });
     });
 
     const panel = document.createElement('div');
@@ -747,6 +932,9 @@
     try {
       chrome.runtime.sendMessage({ type: 'SET_BADGE', count: findings.length });
     } catch (_) {}
+
+    // Start tracking scroll/resize/DOM changes
+    startTrackingListeners();
   }
 
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
